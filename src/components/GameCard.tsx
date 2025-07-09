@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Game arayüzü burada da güncellendi
 interface Game {
   id: string;
   title: string;
@@ -12,6 +13,7 @@ interface Game {
   rating: number;
   created_by: string;
   created_at: string;
+  profiles: { username: string } | null;
 }
 
 interface GameCardProps {
@@ -30,6 +32,20 @@ const GameCard: React.FC<GameCardProps> = ({ game, onViewDetails }) => {
         alt={game.title}
         className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
       />
+
+      {/* YENİ: Üzerine gelince çıkan bilgi kutusu */}
+      <div className="absolute bottom-5 left-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <div className="relative">
+          {/* Oyun Adı */}
+          <div className="bg-white text-black text-lg font-black uppercase px-3 py-1 border border-black shadow-lg">
+            {game.title}
+          </div>
+          {/* Stüdyo Adı */}
+          <div className="bg-white text-black text-sm font-semibold px-3 py-1 border border-black shadow-lg absolute top-[90%] left-2">
+            {game.profiles?.username || 'Unknown Studio'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

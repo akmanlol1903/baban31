@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import GameCard from './GameCard';
 
+// Game arayüzüne 'profiles' alanı eklendi
 interface Game {
   id: string;
   title: string;
@@ -14,6 +15,7 @@ interface Game {
   rating: number;
   created_by: string;
   created_at: string;
+  profiles: { username: string } | null;
 }
 
 interface GameListProps {
@@ -32,9 +34,10 @@ const GameList: React.FC<GameListProps> = ({ onGameSelect, searchTerm }) => {
   const fetchGames = async () => {
     try {
       setLoading(true);
+      // Sorgu, oyunun yaratıcısının profil adını da getirecek şekilde güncellendi
       const { data, error } = await supabase
         .from('games')
-        .select('*')
+        .select('*, profiles(username)')
         .order('created_at', { ascending: false });
 
       if (error) {
