@@ -51,6 +51,9 @@ export type Database = {
           rating: number;
           created_by: string;
           created_at: string;
+          developer: string[] | null;
+          publisher: string[] | null; // YENİ
+          steam_appid: number | null;
         };
         Insert: {
           id?: string;
@@ -64,6 +67,9 @@ export type Database = {
           rating?: number;
           created_by: string;
           created_at?: string;
+          developer?: string[] | null;
+          publisher?: string[] | null; // YENİ
+          steam_appid?: number | null;
         };
         Update: {
           id?: string;
@@ -77,6 +83,9 @@ export type Database = {
           rating?: number;
           created_by?: string;
           created_at?: string;
+          developer?: string[] | null;
+          publisher?: string[] | null; // YENİ
+          steam_appid?: number | null;
         };
       };
       comments: {

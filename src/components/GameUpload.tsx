@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, FileText, Tag, Save, Search, Link as LinkIcon, Loader2, Info } from 'lucide-react';
+import { Upload, Image as ImageIcon, FileText, Tag, Save, Search, Link as LinkIcon, Loader2, Info, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
-// Tipler
 interface SteamSearchResult {
   appid: number;
   name: string;
@@ -12,19 +11,18 @@ interface SteamSearchResult {
 const GameUpload: React.FC = () => {
   const { user, session } = useAuth();
 
-  // Form verileri için state'ler
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'action',
+    developer: '',
+    publisher: '', 
   });
   const [steamAppId, setSteamAppId] = useState<number | null>(null);
   const [gameLink, setGameLink] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [screenshots, setScreenshots] = useState<string[]>([]);
-
-  // Arayüz durumları için state'ler
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -91,7 +89,7 @@ const GameUpload: React.FC = () => {
       await fillFormWithSteamData({ ...data, title: game.name, appid: game.appid });
     } catch (e: any) {
       setMessage(`Could not find store details for "${game.name}". Please fill in manually.`);
-      setFormData({ title: game.name, description: '', category: 'action' });
+      setFormData({ title: game.name, description: '', category: 'action', developer: '', publisher: '' });
     } finally {
       setIsProcessing(false);
     }
@@ -101,11 +99,15 @@ const GameUpload: React.FC = () => {
     const finalImageUrl = steamData.header_image || steamData.imageUrl;
     const finalAppId = steamData.appid || steamData.steam_appid;
     const screenshotUrls = steamData.screenshots?.map((ss: any) => ss.url || ss.path_full) || [];
+    const developerNames = steamData.developers?.join(', ') || '';
+    const publisherNames = steamData.publishers?.join(', ') || '';
 
     setFormData({
       title: steamData.title || steamData.name,
       description: steamData.short_description || steamData.about_the_game || steamData.description || '',
       category: steamData.category || steamData.genres?.[0]?.description.toLowerCase() || 'action',
+      developer: developerNames,
+      publisher: publisherNames,
     });
     setSteamAppId(finalAppId);
     setImageUrl(finalImageUrl);
@@ -198,6 +200,9 @@ const GameUpload: React.FC = () => {
       }
       
       setMessage('Saving game data...');
+      const developersArray = formData.developer ? formData.developer.split(',').map(d => d.trim()) : null;
+      const publishersArray = formData.publisher ? formData.publisher.split(',').map(p => p.trim()) : null;
+
       const { error } = await supabase.from('games').insert([{
         title: formData.title,
         description: formData.description,
@@ -206,6 +211,8 @@ const GameUpload: React.FC = () => {
         image_url: finalImageUrl,
         screenshots: screenshots,
         created_by: user.id,
+        developer: developersArray,
+        publisher: publishersArray,
         steam_appid: steamAppId,
         download_count: 0,
         rating: 0,
@@ -213,7 +220,7 @@ const GameUpload: React.FC = () => {
       if (error) throw error;
       
       setMessage('Game uploaded successfully!');
-      setFormData({ title: '', description: '', category: 'action' });
+      setFormData({ title: '', description: '', category: 'action', developer: '', publisher: '' });
       setGameLink('');
       setImageFile(null);
       setImageUrl(null);
@@ -276,13 +283,29 @@ const GameUpload: React.FC = () => {
                 <input id="title" name="title" type="text" required value={formData.title} onChange={handleInputChange} className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-lg border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"/>
               </div>
             </div>
-            <div>
+             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <select id="category" name="category" value={formData.category} onChange={handleInputChange} className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-lg border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
                   {categories.map((cat) => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
                 </select>
+              </div>
+            </div>
+          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="developer" className="block text-sm font-medium text-gray-300 mb-2">Developer(s)</label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input id="developer" name="developer" type="text" placeholder="Valve, Riot Games..." value={formData.developer} onChange={handleInputChange} className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-lg border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"/>
+              </div>
+            </div>
+             <div>
+              <label htmlFor="publisher" className="block text-sm font-medium text-gray-300 mb-2">Publisher(s)</label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input id="publisher" name="publisher" type="text" placeholder="Activision, Ubisoft..." value={formData.publisher} onChange={handleInputChange} className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-lg border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"/>
               </div>
             </div>
           </div>

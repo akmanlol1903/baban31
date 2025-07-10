@@ -8,13 +8,22 @@ import AdminPanel from './components/AdminPanel';
 import GameUpload from './components/GameUpload';
 import Profile from './components/Profile';
 
+interface TooltipData {
+  title: string;
+  developer: string;
+  publisher: string;
+}
+
 function AppContent() {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState<'home' | 'login' | 'register' | 'admin' | 'upload' | 'profile' | 'game-details'>('home');
   const [selectedGameId, setSelectedGameId] = useState<string>('');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  // Arama state'i en üst seviyede yönetiliyor
   const [searchTerm, setSearchTerm] = useState('');
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right');
 
   const handleGameSelect = (gameId: string) => {
     setSelectedGameId(gameId);
@@ -28,6 +37,30 @@ function AppContent() {
     } else if (view === 'register') {
       setAuthMode('register');
     }
+  };
+  
+  const updateTooltipSide = (xPosition: number) => {
+    if (xPosition > window.innerWidth / 2) {
+      setTooltipSide('left');
+    } else {
+      setTooltipSide('right');
+    }
+  };
+
+  const handleShowTooltip = (data: TooltipData, e: React.MouseEvent) => {
+    setTooltipData(data);
+    setTooltipPosition({ x: e.clientX, y: e.clientY });
+    updateTooltipSide(e.clientX);
+    setTooltipVisible(true);
+  };
+
+  const handleHideTooltip = () => {
+    setTooltipVisible(false);
+  };
+
+  const handleUpdateTooltipPosition = (e: React.MouseEvent) => {
+    setTooltipPosition({ x: e.clientX, y: e.clientY });
+    updateTooltipSide(e.clientX);
   };
 
   if (loading) {
@@ -46,41 +79,74 @@ function AppContent() {
       />
     );
   }
-
+  
   if (!user && (currentView === 'admin' || currentView === 'upload' || currentView === 'profile')) {
     setCurrentView('home');
   }
 
+  const tooltipStyle: React.CSSProperties = {
+    top: tooltipPosition.y,
+    transform: 'translateY(-50%)',
+    ...(tooltipSide === 'right' 
+      ? { left: tooltipPosition.x + 20 } 
+      : { right: window.innerWidth - tooltipPosition.x + 20 }),
+  };
+
   return (
-    <Layout
-      currentView={currentView}
-      onViewChange={handleViewChange}
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      onGameSelect={handleGameSelect}
-    >
-      {currentView === 'home' && (
-        <GameList 
-            onGameSelect={handleGameSelect} 
-            searchTerm={searchTerm} 
-        />
+    <>
+      <Layout
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onGameSelect={handleGameSelect}
+      >
+        {currentView === 'home' && (
+          <GameList 
+              onGameSelect={handleGameSelect} 
+              searchTerm={searchTerm} 
+              onShowTooltip={handleShowTooltip}
+              onHideTooltip={handleHideTooltip}
+              onUpdateTooltipPosition={handleUpdateTooltipPosition}
+          />
+        )}
+        {currentView === 'game-details' && (
+          <GameDetails 
+            gameId={selectedGameId} 
+            onBack={() => setCurrentView('home')} 
+          />
+        )}
+        {currentView === 'admin' && user && (
+          <AdminPanel />
+        )}
+        {currentView === 'upload' && user && (
+          <GameUpload />
+        )}
+        {currentView === 'profile' && user && (
+          <Profile />
+        )}
+      </Layout>
+      {/* Global Tooltip */}
+      {tooltipVisible && tooltipData && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={tooltipStyle}
+        >
+          {/* GÜNCELLENDİ: Tek bir dış kutu ve içeride ayırıcı çizgi */}
+          <div className="bg-white text-black border border-black shadow-lg">
+            <div className="text-lg font-black uppercase px-3 py-1 border-b border-black">
+              {tooltipData.title}
+            </div>
+            {(tooltipData.developer || tooltipData.publisher) && (
+              <div className="text-sm font-semibold px-3 py-2 flex flex-col space-y-1">
+                {tooltipData.developer && <p><span className="font-bold">Geliştirici:</span> {tooltipData.developer}</p>}
+                {tooltipData.publisher && <p><span className="font-bold">Yayıncı:</span> {tooltipData.publisher}</p>}
+              </div>
+            )}
+          </div>
+        </div>
       )}
-      {currentView === 'game-details' && (
-        <GameDetails 
-          gameId={selectedGameId} 
-          onBack={() => setCurrentView('home')} 
-        />
-      )}
-      {currentView === 'admin' && user && (
-        <AdminPanel />
-      )}
-      {currentView === 'upload' && user && (
-        <GameUpload />
-      )}
-      {currentView === 'profile' && user && (
-        <Profile />
-      )}
-    </Layout>
+    </>
   );
 }
 

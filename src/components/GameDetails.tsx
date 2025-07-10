@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Database } from '../lib/supabase';
 
-// Tipler
 type Game = Database['public']['Tables']['games']['Row'];
 type Comment = Database['public']['Tables']['comments']['Row'] & {
   profiles: { username: string; avatar_url: string | null; };
@@ -24,11 +23,9 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState('');
-
   const [newComment, setNewComment] = useState('');
   const [newRating, setNewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
-
   const screenshotsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,8 +39,10 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
       if (gameError) throw new Error("Oyun bulunamadı.");
       setGame(gameData);
 
-      const { data: profileData } = await supabase.from('profiles').select('username').eq('id', gameData.created_by).single();
-      setCreatorName(profileData?.username || 'Anonymous');
+      if (!gameData.developer && !gameData.publisher) {
+        const { data: profileData } = await supabase.from('profiles').select('username').eq('id', gameData.created_by).single();
+        setCreatorName(profileData?.username || 'Anonymous');
+      }
 
       await fetchComments();
 
@@ -120,6 +119,13 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   if (error) return <div className="text-center text-red-400 p-8">{error}</div>;
   if (!game) return null;
 
+  const developerText = game.developer && game.developer.length > 0 ? game.developer.join(', ') : '';
+  const publisherText = game.publisher && game.publisher.length > 0 ? ` - ${game.publisher.join(', ')}` : '';
+  let displayCredit = `${developerText}${publisherText}`;
+  if (!displayCredit) {
+      displayCredit = creatorName;
+  }
+
   return (
     <div className="bg-slate-900 text-white min-h-screen">
       <div className="max-w-7xl mx-auto p-8">
@@ -128,22 +134,19 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
         </button>
 
         <div className="w-full space-y-16">
-          {/* Main Game Image */}
           <img src={game.image_url || 'https://via.placeholder.com/1280x720'} alt={game.title} className="w-full h-auto object-cover" />
 
-          {/* Game Info Section */}
           <div>
             <div className="mb-8">
               <h1 className="text-5xl lg:text-8xl font-black uppercase tracking-wider mb-2">{game.title}</h1>
               <div className="flex justify-between items-baseline text-slate-400">
-                <p>{creatorName}</p>
+                <p>{displayCredit}</p>
                 <p>{new Date(game.created_at).getFullYear()}</p>
               </div>
             </div>
             <p className="text-slate-300 leading-relaxed text-lg mb-12">{steamDetails?.short_description || game.description}</p>
           </div>
 
-          {/* Section Links */}
           <div className="w-full space-y-4 border-y border-slate-700 text-lg">
             {steamDetails && <SectionLink title="ABOUT" onClick={() => handleScrollTo('about-section')} />}
             {steamDetails?.pc_requirements?.minimum && <SectionLink title="SYSTEM REQUIREMENTS" onClick={() => handleScrollTo('requirements-section')} />}
@@ -152,7 +155,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
             <SectionLink title="DOWNLOAD" onClick={handleDownload} icon={<Download className="h-5 w-5"/>} />
           </div>
 
-          {/* Screenshots Section */}
           {screenshots.length > 0 && (
             <div id="screenshots-section" className="space-y-8">
               <h2 className="text-3xl font-bold">SCREENSHOTS</h2>
@@ -172,7 +174,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
             </div>
           )}
 
-          {/* About Section */}
           {steamDetails && (
             <div id="about-section" className="space-y-8 pt-16 border-t border-slate-700">
               <h2 className="text-3xl font-bold">ABOUT</h2>
@@ -180,7 +181,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
             </div>
           )}
 
-          {/* System Requirements Section */}
           {steamDetails?.pc_requirements?.minimum && (
             <div id="requirements-section" className="space-y-8 pt-16 border-t border-slate-700">
               <h2 className="text-3xl font-bold">SYSTEM REQUIREMENTS</h2>
@@ -199,7 +199,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
             </div>
           )}
           
-          {/* Comments Section */}
           <div id="comments-section" className="space-y-8 pt-16 border-t border-slate-700">
             <h2 className="text-3xl font-bold">COMMENTS & REVIEWS</h2>
             {user && (
@@ -234,7 +233,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   );
 };
 
-// Yardımcı bileşen
 const SectionLink: React.FC<{title: string, onClick: () => void, icon?: React.ReactNode}> = ({ title, onClick, icon }) => (
     <button onClick={onClick} className="w-full flex justify-between items-center py-4 border-b border-slate-700 last:border-b-0 hover:text-purple-400 transition-colors group">
         <span className="font-bold">{title}</span>

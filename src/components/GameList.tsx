@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import GameCard from './GameCard';
 
-// Game arayüzüne 'profiles' alanı eklendi
 interface Game {
   id: string;
   title: string;
@@ -16,14 +15,30 @@ interface Game {
   created_by: string;
   created_at: string;
   profiles: { username: string } | null;
+  developer: string[] | null;
+  steam_appid: number | null;
+}
+
+interface TooltipData {
+    title: string;
+    developer: string;
 }
 
 interface GameListProps {
   onGameSelect: (gameId: string) => void;
   searchTerm: string;
+  onShowTooltip: (data: TooltipData, e: React.MouseEvent) => void;
+  onHideTooltip: () => void;
+  onUpdateTooltipPosition: (e: React.MouseEvent) => void;
 }
 
-const GameList: React.FC<GameListProps> = ({ onGameSelect, searchTerm }) => {
+const GameList: React.FC<GameListProps> = ({ 
+    onGameSelect, 
+    searchTerm, 
+    onShowTooltip, 
+    onHideTooltip, 
+    onUpdateTooltipPosition 
+}) => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +49,6 @@ const GameList: React.FC<GameListProps> = ({ onGameSelect, searchTerm }) => {
   const fetchGames = async () => {
     try {
       setLoading(true);
-      // Sorgu, oyunun yaratıcısının profil adını da getirecek şekilde güncellendi
       const { data, error } = await supabase
         .from('games')
         .select('*, profiles(username)')
@@ -80,6 +94,9 @@ const GameList: React.FC<GameListProps> = ({ onGameSelect, searchTerm }) => {
               key={game.id}
               game={game}
               onViewDetails={onGameSelect}
+              onShowTooltip={onShowTooltip}
+              onHideTooltip={onHideTooltip}
+              onUpdateTooltipPosition={onUpdateTooltipPosition}
             />
           ))}
         </div>

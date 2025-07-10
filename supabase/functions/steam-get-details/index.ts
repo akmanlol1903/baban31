@@ -14,7 +14,6 @@ serve(async (req) => {
     const { appId } = await req.json();
     if (!appId) throw new Error('Uygulama ID (appId) gereklidir');
 
-    // Steam'in mağaza detayları API'sini çağır
     const detailsResponse = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&cc=tr&l=turkish`);
     if (!detailsResponse.ok) throw new Error('Steam mağazasından detaylar alınamadı.');
     const detailsData = await detailsResponse.json();
@@ -25,21 +24,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, message: 'Oyun mağazada bulunamadı.' }), { status: 404 });
     }
 
-    // İstenen tüm bilgileri ayıkla
     const result = {
       success: true,
-      about_the_game: gameData.data.about_the_game, // Oyun hakkında metni
+      about_the_game: gameData.data.about_the_game,
       short_description: gameData.data.short_description,
-      // Ekran görüntülerini formatla (sadece resim URL'lerini al)
       screenshots: gameData.data.screenshots?.map((ss: any) => ({
         id: ss.id,
         url: ss.path_full,
       })) || [],
-      // PC sistem gereksinimlerini al
       pc_requirements: gameData.data.pc_requirements,
-      // Diğer bilgiler
       header_image: gameData.data.header_image,
       genres: gameData.data.genres,
+      developers: gameData.data.developers,
+      publishers: gameData.data.publishers, // YENİ: Yayıncı bilgisi eklendi
     };
 
     return new Response(JSON.stringify(result), {
