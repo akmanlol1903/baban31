@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Download, Star, Loader2, Send, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Download, Star, Loader2, Send, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Database } from '../lib/supabase';
@@ -66,82 +66,7 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   const [newComment, setNewComment] = useState('');
   const [newRating, setNewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
-
-  const screenshotsRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-  const isWheeling = useRef(false);
-
-  // --- SÜRÜKLEME VE TEKERLEK İÇİN YENİ VE KARARLI KOD ---
-
-  useEffect(() => {
-    const element = screenshotsRef.current;
-    if (!element) return;
-
-    // Sürükleme için olay dinleyicileri
-    const handleMouseDown = (e: MouseEvent) => {
-        isDragging.current = true;
-        startX.current = e.pageX - element.offsetLeft;
-        scrollLeft.current = element.scrollLeft;
-        element.style.cursor = 'grabbing';
-        element.style.scrollSnapType = 'none'; // Sürüklerken snap'i devre dışı bırak
-    };
-
-    const handleMouseLeave = () => {
-        isDragging.current = false;
-        element.style.cursor = 'grab';
-    };
-
-    const handleMouseUp = () => {
-        isDragging.current = false;
-        element.style.cursor = 'grab';
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-        if (!isDragging.current) return;
-        e.preventDefault();
-        const x = e.pageX - element.offsetLeft;
-        const walk = (x - startX.current) * 2;
-        element.scrollLeft = scrollLeft.current - walk;
-    };
-    
-    // Tekerlek ile kaydırma için olay dinleyicisi
-    const handleWheel = (e: WheelEvent) => {
-        if (isDragging.current) return;
-        e.preventDefault();
-        
-        // Tekerlek kullanılırken snap'i etkinleştir
-        element.style.scrollSnapType = 'x mandatory';
-
-        if (!isWheeling.current) {
-            isWheeling.current = true;
-            const scrollAmount = e.deltaY > 0 ? element.clientWidth : -element.clientWidth;
-            element.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-            
-            // Kısa bir bekleme süresi sonrası tekrar tekerlek kullanımına izin ver
-            setTimeout(() => {
-                isWheeling.current = false;
-            }, 500); // 500ms bekleme
-        }
-    };
-    
-    // Olay dinleyicilerini ekle
-    element.addEventListener('mousedown', handleMouseDown);
-    element.addEventListener('mouseleave', handleMouseLeave);
-    element.addEventListener('mouseup', handleMouseUp);
-    element.addEventListener('mousemove', handleMouseMove);
-    element.addEventListener('wheel', handleWheel, { passive: false });
-
-    // Component kaldırıldığında dinleyicileri temizle
-    return () => {
-        element.removeEventListener('mousedown', handleMouseDown);
-        element.removeEventListener('mouseleave', handleMouseLeave);
-        element.removeEventListener('mouseup', handleMouseUp);
-        element.removeEventListener('mousemove', handleMouseMove);
-        element.removeEventListener('wheel', handleWheel);
-    };
-  }, []);
+  const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0); // YENİ: Mevcut görselin indeksi
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -224,12 +149,26 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
         console.error('Download failed:', error.message);
     }
   };
+  
+  // YENİ: Ekran görüntüsü değiştirme fonksiyonları
+  const handleNextScreenshot = () => {
+    const screenshots = game?.screenshots || [];
+    setCurrentScreenshotIndex((prevIndex) => (prevIndex + 1) % screenshots.length);
+  };
+  
+  const handlePrevScreenshot = () => {
+    const screenshots = game?.screenshots || [];
+    setCurrentScreenshotIndex((prevIndex) => (prevIndex - 1 + screenshots.length) % screenshots.length);
+  };
+
 
   if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (error) return <div className="text-center text-red-400 p-8">{error}</div>;
   if (!game) return null;
 
   const screenshots = game.screenshots || [];
+  const hasScreenshots = screenshots.length > 0;
+
 
   return (
     <div className="bg-slate-900 text-white min-h-screen">
@@ -243,23 +182,29 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
                 </div>
                 <div id="screenshots-section" className="flex-grow flex flex-col space-y-4 overflow-hidden">
                     <h2 className="text-2xl font-bold flex-shrink-0">SCREENSHOTS</h2>
-                    <div className="relative flex-grow overflow-hidden">
-                        <div 
-                            ref={screenshotsRef} 
-                            className="absolute inset-0 flex flex-row space-x-4 overflow-x-auto"
-                            style={{ cursor: 'grab' }}
-                        >
-                            {screenshots.map((src, index) => (
-                                <div key={index} className="snap-start flex-shrink-0 w-full h-full">
-                                    <img 
-                                        src={src} 
-                                        alt={`${game.title} screenshot ${index + 1}`} 
-                                        className="w-full h-full object-cover" 
-                                        draggable="false"
-                                    />
-                                </div>
-                            ))}
-                        </div>
+                    <div className="relative flex-grow flex items-center justify-center bg-black">
+                      {hasScreenshots ? (
+                        <>
+                          <img 
+                              src={screenshots[currentScreenshotIndex]} 
+                              alt={`${game.title} screenshot ${currentScreenshotIndex + 1}`} 
+                              className="w-full h-full object-contain"
+                          />
+                           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                              <button onClick={handlePrevScreenshot} className="bg-black/50 p-2 rounded-full text-white hover:bg-black/80">
+                                <ChevronLeft size={24} />
+                              </button>
+                              <div className="bg-black/50 text-white text-sm px-3 py-1 rounded-full">
+                                {currentScreenshotIndex + 1} / {screenshots.length}
+                              </div>
+                              <button onClick={handleNextScreenshot} className="bg-black/50 p-2 rounded-full text-white hover:bg-black/80">
+                                <ChevronRight size={24} />
+                              </button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-gray-500">No screenshots available.</p>
+                      )}
                     </div>
                 </div>
             </div>
