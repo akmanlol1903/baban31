@@ -24,11 +24,13 @@ function AppContent() {
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right');
+  const [isHeaderSidebar, setIsHeaderSidebar] = useState(false);
 
   const handleGameSelect = (gameId: string) => {
     setTooltipVisible(false);
     setSelectedGameId(gameId);
     setCurrentView('game-details');
+    setIsHeaderSidebar(true);
   };
 
   const handleViewChange = (view: string) => {
@@ -38,8 +40,16 @@ function AppContent() {
     } else if (view === 'register') {
       setAuthMode('register');
     }
+    if (view !== 'game-details') {
+        setIsHeaderSidebar(false);
+    }
   };
-  
+
+  const handleBackFromDetails = () => {
+    setCurrentView('home');
+    setIsHeaderSidebar(false);
+  }
+
   const updateTooltipSide = (xPosition: number) => {
     if (xPosition > window.innerWidth / 2) {
       setTooltipSide('left');
@@ -80,7 +90,7 @@ function AppContent() {
       />
     );
   }
-  
+
   if (!user && (currentView === 'admin' || currentView === 'upload' || currentView === 'profile')) {
     setCurrentView('home');
   }
@@ -96,6 +106,7 @@ function AppContent() {
   return (
     <>
       <Layout
+        isHeaderSidebar={isHeaderSidebar}
         currentView={currentView}
         onViewChange={handleViewChange}
         searchTerm={searchTerm}
@@ -114,7 +125,7 @@ function AppContent() {
         {currentView === 'game-details' && (
           <GameDetails 
             gameId={selectedGameId} 
-            onBack={() => setCurrentView('home')} 
+            onBack={handleBackFromDetails} 
           />
         )}
         {currentView === 'admin' && user && (

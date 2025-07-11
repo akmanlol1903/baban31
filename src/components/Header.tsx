@@ -15,9 +15,10 @@ interface HeaderProps {
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     onGameSelect: (gameId: string) => void;
+    isHeaderSidebar: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onViewChange, searchTerm, setSearchTerm, onGameSelect }) => {
+const Header: React.FC<HeaderProps> = ({ onViewChange, searchTerm, setSearchTerm, onGameSelect, isHeaderSidebar }) => {
     const { user, signOut, isAdmin } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -123,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({ onViewChange, searchTerm, setSearchTerm
           }}
         />
   
-        <header className="fixed top-6 left-0 right-0 z-50 flex justify-center">
+        <header className={`fixed top-6 left-0 right-0 z-50 flex justify-center transition-transform duration-500 ease-in-out ${isHeaderSidebar ? 'translate-x-[calc(50vw-240px)]' : ''}`}>
           <div 
             className="relative w-[430px] bg-slate-800/70 backdrop-blur-md border border-slate-700 shadow-lg transition-[height] duration-300 ease-in-out"
             style={{ height: `${headerHeight}px` }}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Download, Star, ChevronLeft, ChevronRight, Loader2, Send, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Download, Star, ChevronLeft, ChevronRight, Loader2, Send, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Database } from '../lib/supabase';
@@ -11,7 +11,7 @@ type Comment = Database['public']['Tables']['comments']['Row'] & {
 };
 interface SteamDetails {
   about_the_game: string;
-  screenshots: { id: number; url: string }[];
+  screenshots: { id: number; url:string }[];
   pc_requirements: { minimum: string; recommended?: string };
   short_description: string;
 }
@@ -23,7 +23,8 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [creatorName, setCreatorName] = useState(''); 
+  const [creatorName, setCreatorName] = useState('');
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   const [newComment, setNewComment] = useState('');
   const [newRating, setNewRating] = useState(5);
@@ -69,8 +70,8 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
     else setComments(data || []);
   };
 
-  const handleScrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleToggleSection = (sectionId: string) => {
+    setOpenSection(openSection === sectionId ? null : sectionId);
   };
 
   const handleSubmitComment = async () => {
@@ -118,6 +119,32 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   if (!displayCredit) {
       displayCredit = creatorName;
   }
+  
+  const AccordionSection = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
+    <div className="relative group cursor-pointer overflow-hidden border-b border-gray-700 last:border-b-0">
+        <div className="absolute bottom-0 left-0 w-full h-0 bg-black group-hover:h-full transition-all duration-300 ease-in-out z-0"></div>
+        <button
+            onClick={() => handleToggleSection(id)}
+            className="relative z-10 w-full flex justify-between items-center p-4"
+        >
+            <span className="font-bold text-sm text-white transition-colors">
+                {title.toUpperCase()}
+            </span>
+            <ChevronDown
+                className={`h-5 w-5 text-gray-400 group-hover:text-white transition-transform duration-300 ${
+                    openSection === id ? 'rotate-180' : ''
+                }`}
+            />
+        </button>
+        <div
+            className={`relative z-10 px-4 overflow-hidden transition-all duration-500 ease-in-out ${
+            openSection === id ? 'max-h-[2000px] opacity-100 pb-4' : 'max-h-0 opacity-0'
+            }`}
+        >
+            {children}
+        </div>
+    </div>
+  );
 
   return (
     <div className="bg-slate-900 text-white min-h-screen">
@@ -149,74 +176,76 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
             <img src={game.image_url || 'https://via.placeholder.com/1280x720'} alt={game.title} className="w-full h-auto object-cover mb-8" />
             
             <div className="border-b border-slate-700 pb-8">
-                <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-wider mb-2">{game.title}</h1>
-                <div className="flex justify-between items-baseline text-slate-400">
+                <h1 className="text-[32px] font-black uppercase tracking-wider mb-2">{game.title}</h1>
+                <div className="flex justify-between items-baseline text-slate-400 text-sm">
                     <p>{displayCredit}</p>
                     <p>{new Date(game.created_at).getFullYear()}</p>
                 </div>
             </div>
             
-            <p className="text-slate-300 leading-relaxed text-base">{steamDetails?.short_description || game.description}</p>
+            <p className="text-slate-300 leading-relaxed text-sm">{steamDetails?.short_description || game.description}</p>
             
-            <div className="w-full space-y-2 border-y border-slate-700 text-base">
-              {steamDetails && <SectionLink title="ABOUT" onClick={() => handleScrollTo('about-section')} />}
-              {steamDetails?.pc_requirements?.minimum && <SectionLink title="SYSTEM REQUIREMENTS" onClick={() => handleScrollTo('requirements-section')} />}
-              <SectionLink title="COMMENTS & REVIEWS" onClick={() => handleScrollTo('comments-section')} />
-              <SectionLink title="DOWNLOAD" onClick={handleDownload} icon={<Download className="h-5 w-5"/>} />
+            <div className="w-full border-y border-slate-700">
+                <div className="relative group cursor-pointer overflow-hidden">
+                    <div className="absolute bottom-0 left-0 w-full h-0 bg-black group-hover:h-full transition-all duration-300 ease-in-out z-0"></div>
+                    <button onClick={handleDownload} className="relative z-10 w-full flex justify-between items-center p-4">
+                        <span className="font-bold text-sm text-white transition-colors">DOWNLOAD</span>
+                        <Download className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors" />
+                    </button>
+                </div>
             </div>
 
-            {steamDetails && (
-              <div id="about-section" className="space-y-8 pt-8 border-t border-slate-700">
-                <h2 className="text-2xl font-bold">ABOUT</h2>
-                <div className="prose prose-invert text-gray-300 max-w-none text-base" dangerouslySetInnerHTML={{ __html: steamDetails.about_the_game }} />
-              </div>
-            )}
-
-            {steamDetails?.pc_requirements?.minimum && (
-              <div id="requirements-section" className="space-y-8 pt-8 border-t border-slate-700">
-                <h2 className="text-2xl font-bold">SYSTEM REQUIREMENTS</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="font-semibold text-purple-400 mb-2">MINIMUM:</h3>
-                    <div className="text-gray-300 prose prose-invert max-w-none prose-sm" dangerouslySetInnerHTML={{ __html: steamDetails.pc_requirements.minimum }} />
-                  </div>
-                  {steamDetails.pc_requirements.recommended && (
-                    <div>
-                      <h3 className="font-semibold text-purple-400 mb-2">RECOMMENDED:</h3>
-                      <div className="text-gray-300 prose prose-invert max-w-none prose-sm" dangerouslySetInnerHTML={{ __html: steamDetails.pc_requirements.recommended }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div id="comments-section" className="space-y-8 pt-8 border-t border-slate-700">
-              <h2 className="text-2xl font-bold">COMMENTS & REVIEWS</h2>
-              {user && (
-                <div className="bg-slate-800/50 p-4">
-                  <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write your review..." className="w-full bg-slate-800 text-white p-3 border border-slate-600 focus:border-purple-500" rows={3}/>
-                  <div className="flex justify-between items-center mt-3">
-                      <div className="flex items-center space-x-1">{[1, 2, 3, 4, 5].map(star => (<button key={star} onClick={() => setNewRating(star)} className={`h-6 w-6 ${star <= newRating ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}><Star /></button>))}</div>
-                      <button onClick={handleSubmitComment} disabled={submitting || !newComment.trim()} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-5 py-2 flex items-center space-x-2 text-sm"><Send className="h-4 w-4" /><span>Submit</span></button>
-                  </div>
-                </div>
-              )}
-              <div className="space-y-4">
-                {comments.length === 0 ? (<p className="text-center text-gray-400 py-8">No comments yet.</p>) : (
-                  comments.map(c => (
-                    <div key={c.id} className="bg-slate-800 p-4 flex gap-4">
-                      <img src={c.profiles?.avatar_url || `https://api.dicebear.com/8.x/bottts/svg?seed=${c.profiles?.username}`} alt="avatar" className="w-10 h-10 rounded-full bg-slate-800"/>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-white">{c.profiles?.username || 'User'}</span>
-                          <div className="flex items-center gap-1">{[...Array(c.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-yellow-400 fill-current"/>)}{[...Array(5 - c.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-gray-500"/>)}</div>
-                        </div>
-                        <p className="text-gray-300 mt-1">{c.content}</p>
-                      </div>
-                    </div>
-                  ))
+            <div className="space-y-0 border-t border-slate-700">
+                {steamDetails && (
+                    <AccordionSection id="about" title="ABOUT">
+                        <div className="prose prose-invert text-gray-300 max-w-none text-sm" dangerouslySetInnerHTML={{ __html: steamDetails.about_the_game }} />
+                    </AccordionSection>
                 )}
-              </div>
+
+                {steamDetails?.pc_requirements?.minimum && (
+                     <AccordionSection id="requirements" title="SYSTEM REQUIREMENTS">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 className="font-semibold text-purple-400 mb-2 text-sm">MINIMUM:</h3>
+                                <div className="text-gray-300 prose prose-invert max-w-none prose-sm text-sm" dangerouslySetInnerHTML={{ __html: steamDetails.pc_requirements.minimum }} />
+                            </div>
+                            {steamDetails.pc_requirements.recommended && (
+                                <div>
+                                <h3 className="font-semibold text-purple-400 mb-2 text-sm">RECOMMENDED:</h3>
+                                <div className="text-gray-300 prose prose-invert max-w-none prose-sm text-sm" dangerouslySetInnerHTML={{ __html: steamDetails.pc_requirements.recommended }} />
+                                </div>
+                            )}
+                        </div>
+                    </AccordionSection>
+                )}
+                
+                <AccordionSection id="comments" title="COMMENTS & REVIEWS">
+                    {user && (
+                        <div className="bg-slate-800/50 p-4 mb-6">
+                        <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write your review..." className="w-full bg-slate-800 text-white p-3 border border-slate-600 focus:border-purple-500 text-sm" rows={3}/>
+                        <div className="flex justify-between items-center mt-3">
+                            <div className="flex items-center space-x-1">{[1, 2, 3, 4, 5].map(star => (<button key={star} onClick={() => setNewRating(star)} className={`h-6 w-6 ${star <= newRating ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}><Star /></button>))}</div>
+                            <button onClick={handleSubmitComment} disabled={submitting || !newComment.trim()} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-5 py-2 flex items-center space-x-2 text-sm"><Send className="h-4 w-4" /><span>Submit</span></button>
+                        </div>
+                        </div>
+                    )}
+                    <div className="space-y-4">
+                        {comments.length === 0 ? (<p className="text-center text-gray-400 py-8 text-sm">No comments yet.</p>) : (
+                        comments.map(c => (
+                            <div key={c.id} className="bg-slate-800 p-4 flex gap-4">
+                            <img src={c.profiles?.avatar_url || `https://api.dicebear.com/8.x/bottts/svg?seed=${c.profiles?.username}`} alt="avatar" className="w-10 h-10 rounded-full bg-slate-800"/>
+                            <div className="flex-1">
+                                <div className="flex justify-between items-center">
+                                <span className="font-semibold text-white text-sm">{c.profiles?.username || 'User'}</span>
+                                <div className="flex items-center gap-1">{[...Array(c.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-yellow-400 fill-current"/>)}{[...Array(5 - c.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-gray-500"/>)}</div>
+                                </div>
+                                <p className="text-gray-300 mt-1 text-sm">{c.content}</p>
+                            </div>
+                            </div>
+                        ))
+                        )}
+                    </div>
+                </AccordionSection>
             </div>
           </div>
         </div>
@@ -224,15 +253,5 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
     </div>
   );
 };
-
-// Yardımcı bileşen
-const SectionLink: React.FC<{title: string, onClick: () => void, icon?: React.ReactNode}> = ({ title, onClick, icon }) => (
-    <button onClick={onClick} className="w-full flex justify-between items-center py-4 border-b border-slate-700 last:border-b-0 hover:text-purple-400 transition-colors group">
-        <span className="font-bold">{title}</span>
-        <div className="transform transition-transform duration-300 group-hover:translate-x-2">
-            {icon || <ArrowUpRight className="h-5 w-5"/>}
-        </div>
-    </button>
-);
 
 export default GameDetails;

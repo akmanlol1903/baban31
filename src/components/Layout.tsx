@@ -8,10 +8,10 @@ interface LayoutProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onGameSelect: (gameId: string) => void;
+  isHeaderSidebar: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, searchTerm, setSearchTerm, onGameSelect }) => {
-  // GÜNCELLENDİ: game-details görünümünün de tam ekran olması için kontrol eklendi.
+const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, searchTerm, setSearchTerm, onGameSelect, isHeaderSidebar }) => {
   const isFullScreenView = currentView === 'home' || currentView === 'game-details';
 
   const mainContentClass = isFullScreenView
@@ -29,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, se
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         onGameSelect={onGameSelect}
+        isHeaderSidebar={isHeaderSidebar}
       />
       <main className={mainContentClass} style={mainContentStyle}>
         {children}
