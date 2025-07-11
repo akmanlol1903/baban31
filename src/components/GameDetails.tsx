@@ -14,7 +14,46 @@ interface SteamDetails {
   screenshots: { id: number; url:string }[];
   pc_requirements: { minimum: string; recommended?: string };
   short_description: string;
+  release_date: { coming_soon: boolean; date: string };
 }
+
+// GÜNCELLENDİ: Hem açılıp-kapanma hem de hover animasyonunu doğru şekilde içeren AccordionSection
+const AccordionSection = React.memo(({ id, title, children, isOpen, onToggle }: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+}) => (
+  <div className="relative group overflow-hidden border-b border-gray-700 last:border-b-0">
+    <div className="absolute bottom-0 left-0 w-full h-0 bg-black group-hover:h-full transition-all duration-300 ease-in-out z-0"></div>
+    <button
+      onClick={onToggle}
+      className="relative z-10 w-full flex justify-between items-center p-4 cursor-pointer"
+    >
+      <span className="font-bold text-sm text-white transition-colors">
+        {title.toUpperCase()}
+      </span>
+      <ChevronDown
+        className={`h-5 w-5 text-gray-400 group-hover:text-white transition-transform duration-300 ${
+          isOpen ? 'rotate-180' : ''
+        }`}
+      />
+    </button>
+    <div
+      className={`grid transition-[grid-template-rows] duration-500 ease-in-out ${
+        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+      }`}
+    >
+      <div className="overflow-hidden relative z-10">
+        <div className="px-4 pb-4 cursor-pointer" onClick={onToggle}>
+          {children}
+        </div>
+      </div>
+    </div>
+  </div>
+));
+
 
 const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId, onBack }) => {
   const { user } = useAuth();
@@ -112,39 +151,6 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
   if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (error) return <div className="text-center text-red-400 p-8">{error}</div>;
   if (!game) return null;
-  
-  const developerText = game.developer && game.developer.length > 0 ? game.developer.join(', ') : '';
-  const publisherText = game.publisher && game.publisher.length > 0 ? ` - ${game.publisher.join(', ')}` : '';
-  let displayCredit = `${developerText}${publisherText}`;
-  if (!displayCredit) {
-      displayCredit = creatorName;
-  }
-  
-  const AccordionSection = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
-    <div className="relative group cursor-pointer overflow-hidden border-b border-gray-700 last:border-b-0">
-        <div className="absolute bottom-0 left-0 w-full h-0 bg-black group-hover:h-full transition-all duration-300 ease-in-out z-0"></div>
-        <button
-            onClick={() => handleToggleSection(id)}
-            className="relative z-10 w-full flex justify-between items-center p-4"
-        >
-            <span className="font-bold text-sm text-white transition-colors">
-                {title.toUpperCase()}
-            </span>
-            <ChevronDown
-                className={`h-5 w-5 text-gray-400 group-hover:text-white transition-transform duration-300 ${
-                    openSection === id ? 'rotate-180' : ''
-                }`}
-            />
-        </button>
-        <div
-            className={`relative z-10 px-4 overflow-hidden transition-all duration-500 ease-in-out ${
-            openSection === id ? 'max-h-[2000px] opacity-100 pb-4' : 'max-h-0 opacity-0'
-            }`}
-        >
-            {children}
-        </div>
-    </div>
-  );
 
   return (
     <div className="bg-slate-900 text-white min-h-screen">
@@ -171,39 +177,63 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
         
         {/* Sağ Sütun (Bilgiler) */}
         <div className="lg:h-screen lg:overflow-y-auto border-l border-black lg:pt-[100px] lg:px-6 lg:pb-6 p-6">
-          <div className="space-y-12">
+          <div>
             
-            <img src={game.image_url || 'https://via.placeholder.com/1280x720'} alt={game.title} className="w-full h-auto object-cover mb-8" />
+            <img src={game.image_url || 'https://via.placeholder.com/1280x720'} alt={game.title} className="w-full h-auto object-cover" />
             
-            <div className="border-b border-slate-700 pb-8">
+            <div className="border-b border-slate-700 mt-2 pb-2">
                 <h1 className="text-[32px] font-black uppercase tracking-wider mb-2">{game.title}</h1>
-                <div className="flex justify-between items-baseline text-slate-400 text-sm">
-                    <p>{displayCredit}</p>
-                    <p>{new Date(game.created_at).getFullYear()}</p>
+                <div className="text-slate-400 text-sm">
+                    {(steamDetails?.release_date?.date || game.created_at) && (
+                        <p className="mb-2">
+                            Çıkış Tarihi: {steamDetails?.release_date?.date 
+                                ? steamDetails.release_date.date 
+                                : new Date(game.created_at).toLocaleDateString()}
+                        </p>
+                    )}
+                    <div>
+                        {game.developer && game.developer.length > 0 && (
+                            <p>Geliştirici: {game.developer.join(', ')}</p>
+                        )}
+                        {game.publisher && game.publisher.length > 0 && (
+                            <p>Yayıncı: {game.publisher.join(', ')}</p>
+                        )}
+                        {(!game.developer || game.developer.length === 0) && (!game.publisher || game.publisher.length === 0) && (
+                            <p>Yükleyen: {creatorName}</p>
+                        )}
+                    </div>
                 </div>
             </div>
             
-            <p className="text-slate-300 leading-relaxed text-sm">{steamDetails?.short_description || game.description}</p>
+            <p className="text-slate-300 leading-relaxed text-sm mt-6">{steamDetails?.short_description || game.description}</p>
             
-            <div className="w-full border-y border-slate-700">
-                <div className="relative group cursor-pointer overflow-hidden">
+            <div className="border-t border-slate-700 mt-6">
+                <div className="relative group cursor-pointer overflow-hidden border-b border-gray-700">
                     <div className="absolute bottom-0 left-0 w-full h-0 bg-black group-hover:h-full transition-all duration-300 ease-in-out z-0"></div>
                     <button onClick={handleDownload} className="relative z-10 w-full flex justify-between items-center p-4">
                         <span className="font-bold text-sm text-white transition-colors">DOWNLOAD</span>
                         <Download className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors" />
                     </button>
                 </div>
-            </div>
 
-            <div className="space-y-0 border-t border-slate-700">
                 {steamDetails && (
-                    <AccordionSection id="about" title="ABOUT">
+                    <AccordionSection 
+                      id="about" 
+                      title="ABOUT"
+                      isOpen={openSection === 'about'}
+                      onToggle={() => handleToggleSection('about')}
+                    >
                         <div className="prose prose-invert text-gray-300 max-w-none text-sm" dangerouslySetInnerHTML={{ __html: steamDetails.about_the_game }} />
                     </AccordionSection>
                 )}
 
                 {steamDetails?.pc_requirements?.minimum && (
-                     <AccordionSection id="requirements" title="SYSTEM REQUIREMENTS">
+                     <AccordionSection 
+                        id="requirements" 
+                        title="SYSTEM REQUIREMENTS"
+                        isOpen={openSection === 'requirements'}
+                        onToggle={() => handleToggleSection('requirements')}
+                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
                                 <h3 className="font-semibold text-purple-400 mb-2 text-sm">MINIMUM:</h3>
@@ -219,7 +249,12 @@ const GameDetails: React.FC<{ gameId: string; onBack: () => void; }> = ({ gameId
                     </AccordionSection>
                 )}
                 
-                <AccordionSection id="comments" title="COMMENTS & REVIEWS">
+                <AccordionSection 
+                  id="comments" 
+                  title="COMMENTS & REVIEWS"
+                  isOpen={openSection === 'comments'}
+                  onToggle={() => handleToggleSection('comments')}
+                >
                     {user && (
                         <div className="bg-slate-800/50 p-4 mb-6">
                         <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write your review..." className="w-full bg-slate-800 text-white p-3 border border-slate-600 focus:border-purple-500 text-sm" rows={3}/>

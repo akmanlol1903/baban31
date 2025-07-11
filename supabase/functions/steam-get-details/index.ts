@@ -36,7 +36,8 @@ serve(async (req) => {
       header_image: gameData.data.header_image,
       genres: gameData.data.genres,
       developers: gameData.data.developers,
-      publishers: gameData.data.publishers, // YENİ: Yayıncı bilgisi eklendi
+      publishers: gameData.data.publishers,
+      release_date: gameData.data.release_date, // EKLENDİ: Çıkış tarihi bilgisi
     };
 
     return new Response(JSON.stringify(result), {
