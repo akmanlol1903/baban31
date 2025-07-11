@@ -10,3 +10,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Scrollbar'ı tüm sitede gizlemek için */
+/* Chrome, Safari, Opera ve Edge için */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox için */
+* {
+  scrollbar-width: none;
+}
+
+/* IE için (eski versiyonlar) */
+body {
+  -ms-overflow-style: none;
+}
