@@ -26,6 +26,7 @@ function AppContent() {
   const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right');
 
   const handleGameSelect = (gameId: string) => {
+    setTooltipVisible(false);
     setSelectedGameId(gameId);
     setCurrentView('game-details');
   };
@@ -132,13 +133,14 @@ function AppContent() {
           className="fixed z-50 pointer-events-none"
           style={tooltipStyle}
         >
-          {/* GÜNCELLENDİ: Tek bir dış kutu ve içeride ayırıcı çizgi */}
-          <div className="bg-white text-black border border-black shadow-lg">
-            <div className="text-lg font-black uppercase px-3 py-1 border-b border-black">
+          <div className="relative">
+            {/* Üst Kutu */}
+            <div className="bg-white text-black text-lg font-black uppercase px-3 py-1 border border-black shadow-lg">
               {tooltipData.title}
             </div>
+            {/* Alt Kutu */}
             {(tooltipData.developer || tooltipData.publisher) && (
-              <div className="text-sm font-semibold px-3 py-2 flex flex-col space-y-1">
+              <div className="absolute top-full left-0 -mt-px whitespace-nowrap bg-white text-black text-sm font-semibold px-3 py-2 border border-black shadow-lg flex flex-col space-y-1">
                 {tooltipData.developer && <p><span className="font-bold">Geliştirici:</span> {tooltipData.developer}</p>}
                 {tooltipData.publisher && <p><span className="font-bold">Yayıncı:</span> {tooltipData.publisher}</p>}
               </div>
